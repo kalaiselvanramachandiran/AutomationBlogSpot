@@ -1,24 +1,32 @@
 package Practice_1;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Set;
+import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 public class BlogSpot {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		// TODO Auto-generated method stub
+		
 		WebDriverManager.chromedriver().setup();
 		ChromeDriver driver = new ChromeDriver();
 		driver.manage().window().maximize();
 		driver.get("https://testautomationpractice.blogspot.com/");
 		driver.navigate().refresh();
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+		
 		WebElement Name=driver.findElement(By.xpath("//input[@id='name']"));
 		Name.sendKeys("kalai");
 		WebElement Phone=driver.findElement(By.xpath("//input[@id='email']"));
@@ -38,21 +46,34 @@ public class BlogSpot {
 		WebElement animalsDropDown=driver.findElement(By.xpath("//select[@id='animals']"));
 		Select select2=new Select(animalsDropDown);
 		select2.selectByIndex(1);
-		WebElement datepicker1=driver.findElement(By.xpath("//*[@id=\"datepicker\"]"));
+		WebElement datepicker1=driver.findElement(By.xpath("//*[@id='datepicker']"));
 		datepicker1.click();
 		String m="March";
 		String y="2025";
 		String d="15";
-		while(true)
-		{
-			String month=driver.findElement(By.xpath("//span[@class='ui-datepicker-month']")).getText();
-			String year=driver.findElement(By.xpath("//span[@class='ui-datepicker-year']")).getText();
-			if(month.equals(m) && year.equals(y))
-			{
-				break;
-			}
-			driver.findElement(By.xpath("//a[@title='Next']")).click();
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+		int maxTries = 12; // Max 12 months forward
+		int tries = 0;
+		while (tries < maxTries) {
+		    String month = driver.findElement(By.xpath("//span[@class='ui-datepicker-month']")).getText();
+		    String year = driver.findElement(By.xpath("//span[@class='ui-datepicker-year']")).getText();
+		    
+		   // System.out.println("Current Calendar: " + month + " " + year); // Debug
+
+		    if (month.equalsIgnoreCase(m) && year.equals(y)) {
+		        break;
+		    }
+
+		    WebElement nextBtn = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[@title='Next']")));
+		    nextBtn.click();
+
+		    tries++;
 		}
+
+//		if (tries == maxTries) {
+//		    System.out.println("Target month/year not found after " + maxTries + " attempts. Exiting loop.");
+//		}
+
 		List<WebElement>date=driver.findElements(By.xpath("//table[@class='ui-datepicker-calendar']//tbody//tr /td//a"));
 		for(WebElement D:date)
 		{
@@ -108,33 +129,91 @@ public class BlogSpot {
 		     if (price < lowestPrice) {
 		         lowestPrice = price;
 		     }
+		     
 		}
 			
-		System.out.println("Lowest price is "+lowestPrice);
-		 
-		//pagination table.
-		List<WebElement>pagetable=driver.findElements(By.xpath("//*[@id='productTable']//tr//td[3]"));
-		int size1=pagetable.size();
-		String str=pagetable.get(0).getText();
-		String newStr1= str.substring(1,str.length());
-		double lowestprice1=Double.parseDouble(newStr1);
-		System.out.print(lowestprice1);
-		for(int i=1;i<size1;i++)
+		System.out.println("Lowest price is "+lowestPrice);		 
+// //dynamic webtable
+		List<WebElement> activePage=driver.findElements(By.xpath("//*[@class='pagination']//li//a"));
+		System.out.print(activePage.size());
+		for(int i=1;i<=activePage.size();i++)
 		{
-			String newStr2=pagetable.get(i).getText();
-			String newStr3=newStr2.substring(1,newStr2.length());
-			double price1=Double.parseDouble(newStr3);
-			
-			if(price1<lowestprice1)
+			String pageText=driver.findElement(By.xpath("//*[@class='pagination']//li["+i+"]")).getText();
+			int pages=Integer.parseInt(pageText);
+			if(pages>1)
 			{
-				WebElement cbox=driver.findElement(By.xpath("//*[@id='productTable']//tr["+ i +"]//td[4]"));
-				cbox.click();
+				driver.findElement(By.xpath("//*[@class='pagination']//li["+i+"]")).click();
 			}
-//			WebElement nxtbtn=driver.findElement(By.xpath("//a[normalize-space()='2']"));
-//			nxtbtn.click();	
+			int rows=driver.findElements(By.xpath("//*[@id='productTable']//tbody//tr")).size();
+			for(int r=1;r<=rows;r++)
+			{
+				String name=driver.findElement(By.xpath("//*[@id='productTable']//tbody//tr["+r+"]//td[2]")).getText();
+				WebElement cbox=driver.findElement(By.xpath("//*[@id='productTable']//tbody//tr["+r+"]//*[@type='checkbox']"));
+				cbox.click();
+				System.out.println(name);
+			}
 		}
-
-		
+		//handling search Results
+//		driver.findElement(By.xpath("//*[@id='Wikipedia1_wikipedia-search-input']")).sendKeys("selenium");
+//		driver.findElement(By.xpath("//*[@class='wikipedia-search-button']")).click();
+//		List<WebElement> searchResult=driver.findElements(By.xpath("//*[@id='Wikipedia1_wikipedia-search-results']//a"));
+//		for(WebElement e:searchResult)
+//		{
+//			e.click();
+//			
+//		}
+//		Set<String> windowele=driver.getWindowHandles();
+//		System.out.println(windowele);
+//		List<String>ele=new ArrayList(windowele);
+//		for(String currPage: ele)
+//		{
+//			System.out.println(currPage);
+//			driver.switchTo().window(currPage);
+//			driver.close();
+//		}
+			//handling alerts
+		//simple alert
+			WebElement alertelement=driver.findElement(By.xpath("//*[@id='alertBtn']"));
+			alertelement.click();
+			Alert myalert=driver.switchTo().alert();
+			myalert.accept();
+			//confirmation alert
+			driver.findElement(By.xpath("//*[@id='confirmBtn']")).click();
+			Alert myalert1=driver.switchTo().alert();
+			myalert1.dismiss();
+			String confirmtxt=driver.findElement(By.xpath("//*[@id='demo']")).getText();
+			if(confirmtxt.equals("You pressed Cancel!"))
+			{
+				System.out.println("you have clicked the canceled button");
+			}
+			else
+			{
+				System.out.println("you have clicked the ok button");
+			}
+			//handling prompt alert
+			driver.findElement(By.xpath("//*[@id='promptBtn']")).click();
+			Alert myalert2=driver.switchTo().alert();
+			myalert2.sendKeys("kalai");
+			myalert2.accept();
+			if(confirmtxt.equals("Hello Harry Potter! How are you today?"))
+			{
+				System.out.println("you have clicked ok button");
+			}
+		//handling mouse hover
+		WebElement ele3=driver.findElement(By.xpath("//button[normalize-space()='Point Me']"));
+		WebElement el4=driver.findElement(By.xpath("//a[normalize-space()='Mobiles']"));
+		Thread.sleep(3000);
+		Actions myaction=new Actions(driver);
+		myaction.moveToElement(ele3).moveToElement(el4).perform();
+		//handling double click
+		WebElement btn=driver.findElement(By.xpath("//*[@ondblclick='myFunction1()']"));
+		Actions myaction1=new Actions(driver);
+		myaction1.doubleClick(btn).perform();
+		//handling drag and drop
+		WebElement ele1=driver.findElement(By.xpath("//*[@class='ui-widget-content ui-draggable ui-draggable-handle']"));
+		WebElement el2=driver.findElement(By.xpath("//*[@class='ui-widget-header ui-droppable']"));
+		Actions myaction2=new Actions(driver);
+		myaction2.dragAndDrop(ele1, el2).perform();
 				WebElement form1=driver.findElement(By.xpath("//input[@id='input1']"));
 				form1.sendKeys("kalai");
 				WebElement subbtn1=driver.findElement(By.xpath("//button[@id='btn1']"));
@@ -154,3 +233,5 @@ public class BlogSpot {
 	}
 
 }
+
+
